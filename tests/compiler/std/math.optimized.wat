@@ -5412,8 +5412,10 @@
   i64.gt_u
   if
    local.get $3
+   local.set $4
    local.get $2
    local.set $3
+   local.get $4
    local.set $2
   end
   local.get $2
@@ -5576,8 +5578,10 @@
   i32.gt_u
   if
    local.get $3
+   local.set $4
    local.get $2
    local.set $3
+   local.get $4
    local.set $2
   end
   local.get $3
@@ -42750,7 +42754,7 @@
    call $~lib/builtins/abort
    unreachable
   end
-  f64.const 2.2250738585072004e-308
+  f64.const 0
   f64.const 2.2250738585072004e-308
   f64.const 0
   call $std/math/test_sin
@@ -42764,7 +42768,7 @@
    unreachable
   end
   f64.const 2.225073858507201e-308
-  f64.const 2.225073858507201e-308
+  f64.const 0
   f64.const 0
   call $std/math/test_sin
   i32.eqz
@@ -43373,7 +43377,7 @@
    call $~lib/builtins/abort
    unreachable
   end
-  f32.const -1.862645149230957e-09
+  f32.const -0
   call $~lib/math/NativeMathf.sin
   f32.const -1.862645149230957e-09
   f32.const -4.850638554015907e-12
@@ -43697,7 +43701,7 @@
   end
   f32.const -0.000244140625
   call $~lib/math/NativeMathf.sin
-  f32.const -0.000244140625
+  f32.const -2.4413421845466963e-41
   f32.const -0.0833333358168602
   call $std/math/check<f32>
   i32.eqz
@@ -43807,9 +43811,9 @@
    call $~lib/builtins/abort
    unreachable
   end
-  f32.const -2.802596928649634e-45
+  f32.const -0
   call $~lib/math/NativeMathf.sin
-  f32.const -2.802596928649634e-45
+  f32.const -0
   f32.const 0
   call $std/math/check<f32>
   i32.eqz
@@ -44907,7 +44911,7 @@
    unreachable
   end
   f64.const 1797693134862312514800778e284
-  f64.const 1340780792994258370248265e130
+  f64.const inf
   f64.const -0.5
   call $std/math/test_sqrt
   i32.eqz
@@ -45518,7 +45522,7 @@
    unreachable
   end
   f64.const 2.5175533964200588e-306
-  f64.const 1.5866799918131124e-153
+  f64.const 0
   f64.const -0.4997701048851013
   call $std/math/test_sqrt
   i32.eqz
@@ -46271,7 +46275,7 @@
    call $~lib/builtins/abort
    unreachable
   end
-  f64.const 4.4501477170144003e-308
+  f64.const 0
   f64.const 4.4501477170144003e-308
   f64.const 0
   call $std/math/test_tan
@@ -46284,8 +46288,8 @@
    call $~lib/builtins/abort
    unreachable
   end
-  f64.const 4.450147717014403e-308
-  f64.const 4.450147717014403e-308
+  f64.const 0
+  f64.const 0
   f64.const 0
   call $std/math/test_tan
   i32.eqz
@@ -46375,8 +46379,8 @@
    call $~lib/builtins/abort
    unreachable
   end
-  f64.const -4.4501477170144003e-308
-  f64.const -4.4501477170144003e-308
+  f64.const -0
+  f64.const -0
   f64.const 0
   call $std/math/test_tan
   i32.eqz
@@ -46389,7 +46393,7 @@
    unreachable
   end
   f64.const -4.450147717014403e-308
-  f64.const -4.450147717014403e-308
+  f64.const -0
   f64.const 0
   call $std/math/test_tan
   i32.eqz
@@ -46466,8 +46470,8 @@
    call $~lib/builtins/abort
    unreachable
   end
-  f64.const 4.4e-323
-  f64.const 4.4e-323
+  f64.const 0
+  f64.const 0
   f64.const 0
   call $std/math/test_tan
   i32.eqz
@@ -46570,8 +46574,8 @@
    call $~lib/builtins/abort
    unreachable
   end
-  f64.const -1.1125369292536007e-308
-  f64.const -1.1125369292536007e-308
+  f64.const -0
+  f64.const -0
   f64.const 0
   call $std/math/test_tan
   i32.eqz
@@ -46597,7 +46601,7 @@
    unreachable
   end
   f64.const -2.225073858507201e-308
-  f64.const -2.225073858507201e-308
+  f64.const -0
   f64.const 0
   call $std/math/test_tan
   i32.eqz
@@ -47106,10 +47110,10 @@
    call $~lib/builtins/abort
    unreachable
   end
-  f32.const -1.862645149230957e-09
+  f32.const -0
   call $~lib/math/NativeMathf.tan
-  f32.const -1.862645149230957e-09
-  f32.const 9.701277108031814e-12
+  f32.const -0
+  f32.const 0
   call $std/math/check<f32>
   i32.eqz
   if
@@ -47218,9 +47222,9 @@
    call $~lib/builtins/abort
    unreachable
   end
-  f32.const 2.350988701644575e-38
+  f32.const 0
   call $~lib/math/NativeMathf.tan
-  f32.const 2.350988701644575e-38
+  f32.const 0
   f32.const 0
   call $std/math/check<f32>
   i32.eqz
@@ -47330,9 +47334,9 @@
    call $~lib/builtins/abort
    unreachable
   end
-  f32.const -2.3509880009953429e-38
+  f32.const -0
   call $~lib/math/NativeMathf.tan
-  f32.const -2.3509880009953429e-38
+  f32.const -0
   f32.const 0
   call $std/math/check<f32>
   i32.eqz
@@ -47540,9 +47544,9 @@
    call $~lib/builtins/abort
    unreachable
   end
-  f32.const -2.938735877055719e-39
+  f32.const -0
   call $~lib/math/NativeMathf.tan
-  f32.const -2.938735877055719e-39
+  f32.const -0
   f32.const 0
   call $std/math/check<f32>
   i32.eqz
@@ -48274,7 +48278,7 @@
    call $~lib/builtins/abort
    unreachable
   end
-  f64.const -7.888609052210118e-31
+  f64.const -7.888609052e-314
   f64.const -0
   call $std/math/test_trunc
   i32.eqz
