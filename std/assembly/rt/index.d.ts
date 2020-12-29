@@ -7,7 +7,7 @@ declare function __free(ptr: usize): void;
 declare function __new(size: usize, id: u32): usize;
 declare function __renew(ptr: usize, size: usize): usize;
 declare function __link(parentPtr: usize, childPtr: usize, expectMultiple: bool): void;
-declare function __collect(incremental?: bool): void;
+declare function __collect(): void;
 
 // Runtime type info
 declare function __typeinfo(id: u32): u32;
@@ -24,6 +24,10 @@ declare function __newArray(length: i32, alignLog2: usize, id: u32, data?: usize
 
 // Finalization
 declare function __finalize(ptr: usize): void;
+
+// Shadow stack
+declare const __stack_base: usize;
+declare const __stack_size: usize;
 
 // Debugging
 declare const ASC_RTRACE: bool;

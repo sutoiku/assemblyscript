@@ -607,6 +607,10 @@ export namespace BuiltinNames {
   // internals
   export const heap_base = "~lib/memory/__heap_base";
   export const rtti_base = "~lib/rt/__rtti_base";
+  export const stack_base = "~lib/rt/__stack_base";
+  export const stack_size = "~lib/rt/__stack_size";
+  export const stack_ptr = "~lib/rt/__stack_ptr";
+  export const stack = "~lib/rt/__stack";
   export const visit_globals = "~lib/rt/__visit_globals";
   export const visit_members = "~lib/rt/__visit_members";
 
@@ -3000,7 +3004,7 @@ function builtin_assert(ctx: BuiltinContext): ExpressionRef {
   }
 
   // otherwise call abort if the assertion is false-ish
-  var abort = compiler.makeAbort(operands.length == 2 ? operands[1] : null, ctx.reportNode);
+  var abort = compiler.compileAbort(operands.length == 2 ? operands[1] : null, ctx.reportNode);
   compiler.currentType = type.nonNullableType;
   if (contextualType == Type.void) { // simplify if dropped anyway
     compiler.currentType = Type.void;

@@ -6,6 +6,16 @@ import { ArrayBufferView } from "./arraybuffer";
 // @ts-ignore: decorator
 @builtin
 export declare const __rtti_base: usize;
+// @ts-ignore: decorator
+@builtin
+export declare const __stack_base: usize;
+// @ts-ignore: decorator
+@builtin
+export declare const __stack_size: usize;
+// @ts-ignore: decorator
+@builtin
+export declare var __stack_ptr: usize;
+
 
 // @ts-ignore: decorator
 @builtin @unsafe
@@ -46,7 +56,7 @@ export function __newBuffer(size: usize, id: u32, data: usize = 0): usize {
 // @ts-ignore: decorator
 @unsafe
 export function __newArray(length: i32, alignLog2: usize, id: u32, data: usize = 0): usize {
-  var array = __new(offsetof<i32[]>(), id);
+  var array = __stack(__new(offsetof<i32[]>(), id));
   var bufferSize = <usize>length << alignLog2;
   var buffer = __newBuffer(bufferSize, idof<ArrayBuffer>(), data);
   store<usize>(array, buffer, offsetof<ArrayBufferView>("buffer"));
@@ -58,9 +68,8 @@ export function __newArray(length: i32, alignLog2: usize, id: u32, data: usize =
 }
 
 // @ts-ignore: decorator
-@lazy export var __stackptr = 0;
-
-export function __managed(ptr: usize): usize {
+@unsafe
+export function __stack(ptr: usize): usize {
   return ptr;
 }
 

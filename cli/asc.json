@@ -180,6 +180,19 @@
     "type": "b",
     "default": false
   },
+  "gc": {
+    "category": "Features",
+    "description": [
+      "Garbage collection strategy to use. Defaults to 'none'.",
+      "",
+      " none       No need for garbage collection",
+      " simple     Manual collection invoked from the host",
+      " automatic  Automatic collection with bells and whistles",
+      ""
+    ],
+    "type": "s",
+    "default": "none"
+  },
   "enable": {
     "category": "Features",
     "description": [

@@ -1049,6 +1049,8 @@ export class Module {
 
   // globals
 
+  globals: Set<GlobalRef> = new Set(); // FIXME: C-API to iterate globals
+
   addGlobal(
     name: string,
     type: NativeType,
@@ -1056,7 +1058,9 @@ export class Module {
     initializer: ExpressionRef
   ): GlobalRef {
     var cStr = this.allocStringCached(name);
-    return binaryen._BinaryenAddGlobal(this.ref, cStr, type, mutable, initializer);
+    var globalRef = binaryen._BinaryenAddGlobal(this.ref, cStr, type, mutable, initializer);
+    this.globals.add(globalRef);
+    return globalRef;
   }
 
   getGlobal(
@@ -1070,7 +1074,9 @@ export class Module {
     name: string
   ): void {
     var cStr = this.allocStringCached(name);
+    var globalRef = binaryen._BinaryenGetGlobal(this.ref, cStr);
     binaryen._BinaryenRemoveGlobal(this.ref, cStr);
+    this.globals.delete(globalRef);
   }
 
   // events
@@ -1948,6 +1954,16 @@ export function getConstValueF64(expr: ExpressionRef): f64 {
   return binaryen._BinaryenConstGetValueF64(expr);
 }
 
+export function isConstZero(expr: ExpressionRef): bool {
+  if (getExpressionId(expr) != ExpressionId.Const) return false;
+  var type = getExpressionType(expr);
+  if (type == NativeType.I32) return getConstValueI32(expr) == 0;
+  if (type == NativeType.I64) return getConstValueI64Low(expr) == 0 && getConstValueI64High(expr) == 0;
+  if (type == NativeType.F32) return getConstValueF32(expr) == 0;
+  if (type == NativeType.F64) return getConstValueF64(expr) == 0;
+  return false;
+}
+
 export function getLocalGetIndex(expr: ExpressionRef): Index {
   return binaryen._BinaryenLocalGetGetIndex(expr);
 }
@@ -2502,232 +2518,6 @@ export function needsExplicitUnreachable(expr: ExpressionRef): bool {
         );
       }
     }
-  }
-  return true;
-}
-
-/** Traverses all expression members of an expression, calling the given visitor. */
-export function traverse<T>(
-  expr:  ExpressionRef,
-  data:  T,
-  visit: (expr: ExpressionRef, data: T) => void
-): bool {
-  switch (getExpressionId(expr)) {
-    case ExpressionId.Block: {
-      for (let i: Index = 0, n = binaryen._BinaryenBlockGetNumChildren(expr); i < n; ++i) {
-        visit(binaryen._BinaryenBlockGetChildAt(expr, i), data);
-      }
-      break;
-    }
-    case ExpressionId.If: {
-      visit(binaryen._BinaryenIfGetCondition(expr), data);
-      visit(binaryen._BinaryenIfGetIfTrue(expr), data);
-      let ifFalse = binaryen._BinaryenIfGetIfFalse(expr);
-      if (ifFalse) visit(ifFalse, data);
-      break;
-    }
-    case ExpressionId.Loop: {
-      visit(binaryen._BinaryenLoopGetBody(expr), data);
-      break;
-    }
-    case ExpressionId.Break: {
-      let condition = binaryen._BinaryenBreakGetCondition(expr);
-      if (condition) visit(condition, data);
-      break;
-    }
-    case ExpressionId.Switch: {
-      visit(binaryen._BinaryenSwitchGetCondition(expr), data);
-      break;
-    }
-    case ExpressionId.Call: {
-      for (let i: Index = 0, n = binaryen._BinaryenCallGetNumOperands(expr); i < n; ++i) {
-        visit(binaryen._BinaryenCallGetOperandAt(expr, i), data);
-      }
-      break;
-    }
-    case ExpressionId.CallIndirect: {
-      for (let i: Index = 0, n = binaryen._BinaryenCallIndirectGetNumOperands(expr); i < n; ++i) {
-        visit(binaryen._BinaryenCallIndirectGetOperandAt(expr, i), data);
-      }
-      break;
-    }
-    case ExpressionId.LocalGet: {
-      break;
-    }
-    case ExpressionId.LocalSet: {
-      visit(binaryen._BinaryenLocalSetGetValue(expr), data);
-      break;
-    }
-    case ExpressionId.GlobalGet: {
-      break;
-    }
-    case ExpressionId.GlobalSet: {
-      visit(binaryen._BinaryenGlobalSetGetValue(expr), data);
-      break;
-    }
-    case ExpressionId.Load: {
-      visit(binaryen._BinaryenLoadGetPtr(expr), data);
-      break;
-    }
-    case ExpressionId.Store: {
-      visit(binaryen._BinaryenStoreGetPtr(expr), data);
-      visit(binaryen._BinaryenStoreGetValue(expr), data);
-      break;
-    }
-    case ExpressionId.Const: {
-      break;
-    }
-    case ExpressionId.Unary: {
-      visit(binaryen._BinaryenUnaryGetValue(expr), data);
-      break;
-    }
-    case ExpressionId.Binary: {
-      visit(binaryen._BinaryenBinaryGetLeft(expr), data);
-      visit(binaryen._BinaryenBinaryGetRight(expr), data);
-      break;
-    }
-    case ExpressionId.Select: {
-      visit(binaryen._BinaryenSelectGetIfTrue(expr), data);
-      visit(binaryen._BinaryenSelectGetIfFalse(expr), data);
-      visit(binaryen._BinaryenSelectGetCondition(expr), data);
-      break;
-    }
-    case ExpressionId.Drop: {
-      visit(binaryen._BinaryenDropGetValue(expr), data);
-      break;
-    }
-    case ExpressionId.Return: {
-      let value = binaryen._BinaryenReturnGetValue(expr);
-      if (value) visit(value, data);
-      break;
-    }
-    case ExpressionId.MemorySize:
-      break;
-    case ExpressionId.MemoryGrow:
-      visit(binaryen._BinaryenMemoryGrowGetDelta(expr), data);
-      break;
-    case ExpressionId.Nop: {
-      break;
-    }
-    case ExpressionId.Unreachable: {
-      break;
-    }
-    case ExpressionId.AtomicRMW: {
-      visit(binaryen._BinaryenAtomicRMWGetPtr(expr), data);
-      visit(binaryen._BinaryenAtomicRMWGetValue(expr), data);
-      break;
-    }
-    case ExpressionId.AtomicCmpxchg: {
-      visit(binaryen._BinaryenAtomicCmpxchgGetPtr(expr), data);
-      visit(binaryen._BinaryenAtomicCmpxchgGetExpected(expr), data);
-      visit(binaryen._BinaryenAtomicCmpxchgGetReplacement(expr), data);
-      break;
-    }
-    case ExpressionId.AtomicWait: {
-      visit(binaryen._BinaryenAtomicWaitGetPtr(expr), data);
-      visit(binaryen._BinaryenAtomicWaitGetExpected(expr), data);
-      visit(binaryen._BinaryenAtomicWaitGetTimeout(expr), data);
-      break;
-    }
-    case ExpressionId.AtomicNotify: {
-      visit(binaryen._BinaryenAtomicNotifyGetPtr(expr), data);
-      break;
-    }
-    case ExpressionId.AtomicFence: {
-      break;
-    }
-    case ExpressionId.SIMDExtract: {
-      visit(binaryen._BinaryenSIMDExtractGetVec(expr), data);
-      break;
-    }
-    case ExpressionId.SIMDReplace: {
-      visit(binaryen._BinaryenSIMDReplaceGetVec(expr), data);
-      visit(binaryen._BinaryenSIMDReplaceGetValue(expr), data);
-      break;
-    }
-    case ExpressionId.SIMDShuffle: {
-      visit(binaryen._BinaryenSIMDShuffleGetLeft(expr), data);
-      visit(binaryen._BinaryenSIMDShuffleGetRight(expr), data);
-      break;
-    }
-    case ExpressionId.SIMDTernary: {
-      visit(binaryen._BinaryenSIMDTernaryGetA(expr), data);
-      visit(binaryen._BinaryenSIMDTernaryGetB(expr), data);
-      visit(binaryen._BinaryenSIMDTernaryGetC(expr), data);
-      break;
-    }
-    case ExpressionId.SIMDShift: {
-      visit(binaryen._BinaryenSIMDShiftGetVec(expr), data);
-      visit(binaryen._BinaryenSIMDShiftGetShift(expr), data);
-      break;
-    }
-    case ExpressionId.SIMDLoad: {
-      visit(binaryen._BinaryenSIMDLoadGetPtr(expr), data);
-      break;
-    }
-    case ExpressionId.MemoryInit: {
-      visit(binaryen._BinaryenMemoryInitGetDest(expr), data);
-      visit(binaryen._BinaryenMemoryInitGetOffset(expr), data);
-      visit(binaryen._BinaryenMemoryInitGetSize(expr), data);
-      break;
-    }
-    case ExpressionId.DataDrop: {
-      break;
-    }
-    case ExpressionId.MemoryCopy: {
-      visit(binaryen._BinaryenMemoryCopyGetDest(expr), data);
-      visit(binaryen._BinaryenMemoryCopyGetSource(expr), data);
-      visit(binaryen._BinaryenMemoryCopyGetSize(expr), data);
-      break;
-    }
-    case ExpressionId.MemoryFill: {
-      visit(binaryen._BinaryenMemoryFillGetDest(expr), data);
-      visit(binaryen._BinaryenMemoryFillGetValue(expr), data);
-      visit(binaryen._BinaryenMemoryFillGetSize(expr), data);
-      break;
-    }
-    case ExpressionId.Pop: {
-      break;
-    }
-    case ExpressionId.RefNull: {
-      break;
-    }
-    case ExpressionId.RefIsNull: {
-      visit(binaryen._BinaryenRefIsNullGetValue(expr), data);
-      break;
-    }
-    case ExpressionId.RefFunc: {
-      break;
-    }
-    case ExpressionId.Try: {
-      visit(binaryen._BinaryenTryGetBody(expr), data);
-      visit(binaryen._BinaryenTryGetCatchBody(expr), data);
-      break;
-    }
-    case ExpressionId.Throw: {
-      for (let i: Index = 0, n = binaryen._BinaryenThrowGetNumOperands(expr); i < n; ++i) {
-        visit(binaryen._BinaryenThrowGetOperandAt(expr, i), data);
-      }
-      break;
-    }
-    case ExpressionId.Rethrow: {
-      visit(binaryen._BinaryenRethrowGetExnref(expr), data);
-      break;
-    }
-    case ExpressionId.BrOnExn: {
-      visit(binaryen._BinaryenBrOnExnGetExnref(expr), data);
-      break;
-    }
-    case ExpressionId.TupleMake: {
-      for (let i: Index = 0, n = binaryen._BinaryenTupleMakeGetNumOperands(expr); i < n; ++i) {
-        visit(binaryen._BinaryenTupleMakeGetOperandAt(expr, i), data);
-      }
-      break;
-    }
-    case ExpressionId.TupleExtract: {
-      break;
-    }
-    default: assert(false);
   }
   return true;
 }

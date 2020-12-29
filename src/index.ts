@@ -33,7 +33,7 @@
  * When compiling to WebAssembly `glue/wasm/index.ts` must be included.
  */
 
-import { Target, Feature } from "./common";
+import { Target, Feature, GCStrategy } from "./common";
 import { Compiler, Options } from "./compiler";
 import { IDLBuilder, TSDBuilder } from "./definitions";
 import { DiagnosticMessage, DiagnosticCategory, formatDiagnosticMessage } from "./diagnostics";
@@ -133,6 +133,18 @@ export function setLowMemoryLimit(options: Options, lowMemoryLimit: i32): void {
 export function setNoExportRuntime(options: Options, noExportRuntime: bool): void {
   options.noExportRuntime = noExportRuntime;
 }
+
+/** Sets the `gcStrategy` option. */
+export function setGcStrategy(options: Options, gcStrategy: GCStrategy): void {
+  options.gcStrategy = gcStrategy;
+}
+
+/** No garbage collection. */
+export const GCSTRATEGY_NONE = GCStrategy.None;
+/** Manual collection invoked from the host. */
+export const GCSTRATEGY_SIMPLE = GCStrategy.Simple;
+/** Automatic collection with bells and whistles. */
+export const GCSTRATEGY_AUTOMATIC = GCStrategy.Automatic;
 
 /** Sign extension operations. */
 export const FEATURE_SIGN_EXTENSION = Feature.SIGN_EXTENSION;

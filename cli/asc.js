@@ -114,9 +114,9 @@ function loadAssemblyScriptWasm(binaryPath) {
   const loader = require("../lib/loader/umd/index");
   const rtrace = new (require("../lib/rtrace/umd/index").Rtrace)({
     onerror(err, info) { console.log(err, info); },
-    getMemory() { return assemblyscript.memory; }
+    getMemory() { return exports.memory; }
   });
-  const { exports } = loader.instantiateSync(fs.readFileSync(binaryPath), rtrace.install({ binaryen }));
+  var { exports } = loader.instantiateSync(fs.readFileSync(binaryPath), rtrace.install({ binaryen }));
   if (exports._start) exports._start();
   return exports;
 }
@@ -406,6 +406,12 @@ exports.main = function main(argv, options, callback) {
   assemblyscript.setPedantic(compilerOptions, opts.pedantic);
   assemblyscript.setLowMemoryLimit(compilerOptions, opts.lowMemoryLimit >>> 0);
   assemblyscript.setNoExportRuntime(compilerOptions, opts.noExportRuntime);
+  switch (opts.gc) {
+    case "none": assemblyscript.setGcStrategy(compilerOptions, assemblyscript.GCSTRATEGY_NONE); break;
+    case "simple": assemblyscript.setGcStrategy(compilerOptions, assemblyscript.GCSTRATEGY_SIMPLE); break;
+    case "automatic": assemblyscript.setGcStrategy(compilerOptions, assemblyscript.GCSTRATEGY_AUTOMATIC); break;
+    default: throw Error("invalid GC strategy: " + opts.gc);
+  }
 
   // Instrument callback to perform GC
   callback = (function(callback) {
@@ -427,7 +433,11 @@ exports.main = function main(argv, options, callback) {
       let alias = part.substring(0, p).trim();
       let name = part.substring(p + 1).trim();
       if (!alias.length) return callback(Error("Global alias '" + part + "' is invalid."));
-      assemblyscript.setGlobalAlias(compilerOptions, __newString(alias), __newString(name));
+      let aliasPtr = __retain(__newString(alias));
+      let namePtr = __retain(__newString(name));
+      assemblyscript.setGlobalAlias(compilerOptions, aliasPtr, namePtr);
+      __release(aliasPtr);
+      __release(namePtr);
     }
   }
 
@@ -525,11 +535,11 @@ exports.main = function main(argv, options, callback) {
     if (libPath.indexOf("/") >= 0) return; // in sub-directory: imported on demand
     stats.parseCount++;
     stats.parseTime += measure(() => {
-      assemblyscript.parse(program,
-        __newString(exports.libraryFiles[libPath]),
-        __newString(exports.libraryPrefix + libPath + extension.ext),
-        false // entry
-      );
+      let textPtr = __retain(__newString(exports.libraryFiles[libPath]));
+      let pathPtr = __retain(__newString(exports.libraryPrefix + libPath + extension.ext));
+      assemblyscript.parse(program, textPtr, pathPtr, false); // !entry
+      __release(textPtr);
+      __release(pathPtr);
     });
   });
   let customLibDirs = [];
@@ -554,11 +564,11 @@ exports.main = function main(argv, options, callback) {
         stats.parseCount++;
         exports.libraryFiles[libPath.replace(extension.re, "")] = libText;
         stats.parseTime += measure(() => {
-          assemblyscript.parse(program,
-            __newString(libText),
-            __newString(exports.libraryPrefix + libPath),
-            false // entry
-          );
+          let textPtr = __retain(__newString(libText));
+          let pathPtr = __retain(__newString(exports.libraryPrefix + libPath));
+          assemblyscript.parse(program, textPtr, pathPtr, false); // !entry
+          __release(textPtr);
+          __release(pathPtr);
         });
       }
     }
@@ -668,24 +678,26 @@ exports.main = function main(argv, options, callback) {
 
   // Parses the backlog of imported files after including entry files
   function parseBacklog() {
-    var internalPath;
-    while ((internalPath = __getString(assemblyscript.nextFile(program)))) {
-      let file = getFile(internalPath, assemblyscript.getDependee(program, internalPath));
+    var internalPathPtr;
+    while ((internalPathPtr = assemblyscript.nextFile(program))) {
+      let internalPath = __getString(internalPathPtr);
+      let file = getFile(internalPath, assemblyscript.getDependee(program, __retain(internalPathPtr)));
+      __release(internalPathPtr);
       if (file) {
         stats.parseCount++;
         stats.parseTime += measure(() => {
-          assemblyscript.parse(program,
-            __newString(file.sourceText),
-            __newString(file.sourcePath),
-            false // entry
-          );
+          let textPtr = __retain(__newString(file.sourceText));
+          let pathPtr = __retain(__newString(file.sourcePath));
+          assemblyscript.parse(program, textPtr, pathPtr, false);
+          __release(textPtr);
+          __release(pathPtr);
         });
       } else {
-        assemblyscript.parse(program,
-          __newString(null),
-          __newString(internalPath + extension.ext),
-          false // entry
-        );
+        let textPtr = __retain(__newString(null));
+        let pathPtr = __retain(__newString(internalPath + extension.ext));
+        assemblyscript.parse(program, textPtr, pathPtr, false);
+        __release(textPtr);
+        __release(pathPtr);
       }
     }
     var numErrors = checkDiagnostics(program, stderr);
@@ -703,11 +715,11 @@ exports.main = function main(argv, options, callback) {
     if (runtimeText == null) return callback(Error("Runtime entry not found."));
     stats.parseCount++;
     stats.parseTime += measure(() => {
-      assemblyscript.parse(program,
-        __newString(runtimeText),
-        __newString(runtimePath + extension.ext),
-        true // entry
-      );
+      let textPtr = __retain(__newString(runtimeText));
+      let pathPtr = __retain(__newString(runtimePath + extension.ext));
+      assemblyscript.parse(program, textPtr, pathPtr, true);
+      __release(textPtr);
+      __release(pathPtr);
     });
   }
 
@@ -732,11 +744,11 @@ exports.main = function main(argv, options, callback) {
 
     stats.parseCount++;
     stats.parseTime += measure(() => {
-      assemblyscript.parse(program,
-        __newString(sourceText),
-        __newString(sourcePath),
-        true
-      );
+      let textPtr = __retain(__newString(sourceText));
+      let pathPtr = __retain(__newString(sourcePath));
+      assemblyscript.parse(program, textPtr, pathPtr, true);
+      __release(textPtr);
+      __release(pathPtr);
     });
   }
 
@@ -926,7 +938,9 @@ exports.main = function main(argv, options, callback) {
           map.sourceRoot = "./" + basename;
           let contents = [];
           map.sources.forEach((name, index) => {
-            let text = assemblyscript.getSource(program, __newString(name.replace(extension.re, "")));
+            let pathPtr = __retain(__newString(name.replace(extension.re, "")));
+            let text = assemblyscript.getSource(program, pathPtr);
+            __release(pathPtr);
             if (text == null) return callback(Error("Source of file '" + name + "' not found."));
             contents[index] = text;
           });
@@ -1137,16 +1151,18 @@ exports.getAsconfig = getAsconfig;
 
 /** Checks diagnostics emitted so far for errors. */
 function checkDiagnostics(program, stderr) {
-  var diagnostic;
+  var diagnosticPtr;
   var numErrors = 0;
-  while ((diagnostic = assemblyscript.nextDiagnostic(program))) {
+  while ((diagnosticPtr = assemblyscript.nextDiagnostic(program))) {
+    __retain(diagnosticPtr);
     if (stderr) {
       stderr.write(
-        __getString(assemblyscript.formatDiagnostic(diagnostic, stderr.isTTY, true)) +
+        __getString(assemblyscript.formatDiagnostic(diagnosticPtr, stderr.isTTY, true)) +
         EOL + EOL
       );
     }
-    if (assemblyscript.isError(diagnostic)) ++numErrors;
+    if (assemblyscript.isError(diagnosticPtr)) ++numErrors;
+    __release(diagnosticPtr);
   }
   return numErrors;
 }

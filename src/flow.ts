@@ -35,6 +35,7 @@ import {
   NativeType,
   ExpressionId,
   ExpressionRef,
+  Index,
   BinaryOp,
   UnaryOp,
 
@@ -65,8 +66,7 @@ import {
   getLocalSetIndex,
   getIfCondition,
   getConstValueI64High,
-  getUnaryValue,
-  traverse
+  getUnaryValue
 } from "./module";
 
 import {
@@ -292,7 +292,7 @@ export class Flow {
   }
 
   /** Gets a free temporary local of the specified type. */
-  getTempLocal(type: Type, except: Set<i32> | null = null): Local {
+  getTempLocal(type: Type, except: Set<Index> | null = null): Local {
     var parentFunction = this.parentFunction;
     var temps: Local[] | null;
     switch (<u32>type.toNativeType()) {
@@ -414,7 +414,7 @@ export class Flow {
   }
 
   /** Adds a new scoped local of the specified name. */
-  addScopedLocal(name: string, type: Type, except: Set<i32> | null = null): Local {
+  addScopedLocal(name: string, type: Type, except: Set<Index> | null = null): Local {
     var scopedLocal = this.getTempLocal(type, except);
     scopedLocal.setTemporaryName(name);
     var scopedLocals = this.scopedLocals;
@@ -1453,23 +1453,4 @@ function canConversionOverflow(fromType: Type, toType: Type): bool {
   );
 }
 
-/** Finds all indexes of locals used in the specified expression. */
-export function findUsedLocals(expr: ExpressionRef, used: Set<i32> = new Set<i32>()): Set<i32> {
-  traverse(expr, used, findUsedLocalsVisit);
-  return used;
-}
-
-/** A visitor function for use with `traverse` that finds all indexes of used locals. */
-function findUsedLocalsVisit(expr: ExpressionRef, used: Set<i32>): void {
-  switch (getExpressionId(expr)) {
-    case ExpressionId.LocalGet: {
-      used.add(getLocalGetIndex(expr));
-      break;
-    }
-    case ExpressionId.LocalSet: {
-      used.add(getLocalSetIndex(expr));
-      // fall-through for value
-    }
-    default: traverse(expr, used, findUsedLocalsVisit);
-  }
-}
+export { findUsedLocals } from "./passes/findusedlocals";

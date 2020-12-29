@@ -237,6 +237,7 @@ export namespace CommonNames {
   export const typeinfo = "__typeinfo";
   export const instanceof_ = "__instanceof";
   export const visit = "__visit";
+  export const stack = "__stack";
   export const newBuffer = "__newBuffer";
   export const newArray = "__newArray";
   export const BLOCK = "~lib/rt/common/BLOCK";
@@ -246,4 +247,5 @@ export namespace CommonNames {
 // shared
 export { Feature, featureToString } from "../std/assembly/shared/feature";
 export { Target } from "../std/assembly/shared/target";
+export { Strategy as GCStrategy } from "../std/assembly/shared/gc";
 export { Typeinfo, TypeinfoFlags } from "../std/assembly/shared/typeinfo";

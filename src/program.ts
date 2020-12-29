@@ -702,6 +702,14 @@ export class Program extends DiagnosticEmitter {
   }
   private _visitInstance: Function | null = null;
 
+  /** Gets the runtime `__stack(value: usize): usize` instance. */
+  get stackInstance(): Function {
+    var cached = this._stackInstance;
+    if (!cached) this._stackInstance = cached = this.requireFunction(CommonNames.stack);
+    return cached;
+  }
+  private _stackInstance: Function | null = null;
+
   /** Gets the runtime `__typeinfo(id: u32): RTTIFlags` instance. */
   get typeinfoInstance(): Function {
     var cached = this._typeinfoInstance;
