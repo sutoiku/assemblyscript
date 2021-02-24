@@ -131,6 +131,8 @@ function loadAssemblyScript() {
 }
 loadAssemblyScript();
 
+exports.assemblyscript = assemblyscript;
+
 /** Whether this is a webpack bundle or not. */
 exports.isBundle = typeof BUNDLE_VERSION === "string";
 
