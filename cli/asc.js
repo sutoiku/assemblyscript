@@ -46,10 +46,6 @@ const mkdirp = require("./util/mkdirp");
 const find = require("./util/find");
 const binaryen = global.binaryen || (global.binaryen = require("binaryen"));
 
-const dynrequire = typeof __webpack_require__ === "function"
-  ? __non_webpack_require__
-  : require;
-
 const WIN = process.platform === "win32";
 const EOL = WIN ? "\r\n" : "\n";
 const SEP = WIN ? "\\" : "/";
@@ -80,33 +76,7 @@ if (process.removeAllListeners) process.removeAllListeners("uncaughtException");
 
 // Use distribution files if present, otherwise run the sources directly.
 function loadAssemblyScriptJS() {
-  var exports;
-  try {
-    // note that this case will always trigger in recent node.js versions for typical installs
-    // see: https://nodejs.org/api/packages.html#packages_self_referencing_a_package_using_its_name
-    exports = require("assemblyscript");
-  } catch (e) {
-    try { // `asc` on the command line (unnecessary in recent node)
-      exports = dynrequire("../dist/assemblyscript.js");
-    } catch (e) {
-      try { // `asc` on the command line without dist files (unnecessary in recent node)
-        dynrequire("ts-node").register({
-          project: path.join(__dirname, "..", "src", "tsconfig.json"),
-          skipIgnore: true,
-          compilerOptions: { target: "ES2016" }
-        });
-        dynrequire("../src/glue/js");
-        exports = dynrequire("../src");
-      } catch (e_ts) {
-        try { // `require("dist/asc.js")` in explicit browser tests
-          exports = dynrequire("./assemblyscript");
-        } catch (e) {
-          throw Error(e_ts.stack + "\n---\n" + e.stack);
-        }
-      }
-    }
-  }
-  return exports;
+  return require('../dist/assemblyscript.js');
 }
 
 // Loads the specified bootstrapped Wasm binary of the compiler.
@@ -165,7 +135,7 @@ loadAssemblyScript();
 exports.isBundle = typeof BUNDLE_VERSION === "string";
 
 /** AssemblyScript version. */
-exports.version = exports.isBundle ? BUNDLE_VERSION : dynrequire("../package.json").version;
+exports.version = BUNDLE_VERSION;
 
 /** Available CLI options. */
 exports.options = require("./asc.json");
@@ -497,37 +467,6 @@ exports.main = function main(argv, options, callback) {
 
   // Set up transforms
   const transforms = [];
-  if (opts.transform) {
-    let tsNodeRegistered = false;
-    let transformArgs = unique(opts.transform);
-    for (let i = 0, k = transformArgs.length; i < k; ++i) {
-      let filename = transformArgs[i].trim();
-      if (!tsNodeRegistered && filename.endsWith(".ts")) { // ts-node requires .ts specifically
-        dynrequire("ts-node").register({ transpileOnly: true, skipProject: true, compilerOptions: { target: "ES2016" } });
-        tsNodeRegistered = true;
-      }
-      try {
-        const classOrModule = dynrequire(dynrequire.resolve(filename, { paths: [baseDir, process.cwd()] }));
-        if (typeof classOrModule === "function") {
-          Object.assign(classOrModule.prototype, {
-            program,
-            baseDir,
-            stdout,
-            stderr,
-            log: console.error,
-            readFile,
-            writeFile,
-            listFiles
-          });
-          transforms.push(new classOrModule());
-        } else {
-          transforms.push(classOrModule); // legacy module
-        }
-      } catch (e) {
-        return callback(e);
-      }
-    }
-  }
 
   function applyTransform(name, ...args) {
     for (let i = 0, k = transforms.length; i < k; ++i) {
